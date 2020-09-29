@@ -1,5 +1,6 @@
 const connection = require("./db/connection");
 const inquirer = require("inquirer");
+const { connect } = require("./db/connection");
 
 
 connection.connect(function (err) {
@@ -19,7 +20,10 @@ function startMenu() {
                 "Add",
                 "View",
                 "Update",
+                "Remove",
                 "Exit",
+                // Dev tool to clear all saved data
+                "Dev"
             ]
         }
     ]).then(function (res) {
@@ -32,9 +36,19 @@ function startMenu() {
                 break;            
             case "Update":
                 updateMenu();
-                break;            
+                break;       
+            case "Remove": 
+                removeMenu();
+                break;    
             case "Exit":
                 connection.end();
+                break;
+            // Development tool to clear all saved queries and revert to the default ones in the seed.sql
+            case "Dev":
+                connection.query("DELETE FROM employee WHERE id > 2");
+                connection.query("DELETE FROM department WHERE department_id > 4");
+                connection.query("DELETE FROM role WHERE role_id > 5");
+                startMenu();
                 break;
         }
     });
@@ -49,7 +63,9 @@ function addMenu() {
             choices: [
                 "Add New Department",
                 "Add New Employee",
-                "Add New Role"
+                "Add New Role",
+                "Back to Main Menu",
+                "Exit"
             ]
         }
     ]).then(function (res) {
@@ -63,13 +79,18 @@ function addMenu() {
             case "Add New Role": 
                 addRole();
                 break;
+            case "Back to Main Menu":
+                startMenu();
+                break;
+            case "Exit":
+                connection.end();
+                break;
         }
     });
 }
 
 //functional
 function addEmployee() {
-
     connection.query("SELECT role.role_id, role.title FROM role", (err, res) => {
         if (err) throw err;
         const roles = res.map((data) => {
@@ -86,7 +107,7 @@ function addEmployee() {
                     value: element.id
                 }
             });
-            managers.push("Exit");
+            managers.push("NONE");
             inquirer.prompt([
                 {
                     type: "input",
@@ -112,27 +133,25 @@ function addEmployee() {
                 }
             ]).then(function (input) {
                 console.log(input);
-                const roleID = input.role_id;
-                const managerID = input.manager_id;
-                if (managerID === "Exit") {
-                    connection.end();
-                } else {
-                    connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ( ?, ?, ?, ?)",
-                        [
+                let roleID = input.role_id;
+                let managerID = input.manager_id;
+                if (managerID === "NONE") {
+                    managerID = null;
+                    console.log(managerID);
+                }
+                connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ( ?, ?, ?, ?)",
+                    [
                         input.FirstName,
                         input.LastName,
                         roleID,
                         managerID
-                        ],
-                        (err, res) => {
-                            if (err) throw err;
-                            console.log("Employee has been added!")
-                            console.table(res);
-                            startMenu();
-                        }
-                    );
-                }
-                
+                    ],
+                (err, res) => {
+                    if (err) throw err;
+                    console.log("Employee has been added!")
+                    console.table(res);
+                    startMenu();
+                });
             });
         });
     });
@@ -155,6 +174,31 @@ function addDepartment() {
     });
 }
 
+function addRole() {
+    // connection.query("SELECT role.title FROM role", (err, res) => {
+    //     if (err) throw err;
+    //     const roles = res.map((data) => {
+    //         return {
+    //             name: data.title,
+    //             value: data.role_id
+    //         }
+    //     });
+    // })
+    inquirer.prompt([
+        {
+            type: "input",
+            name: "role",
+            message: "What is the role that you want to add?\n"
+        }
+    ]).then(function (res) {
+        connection.query("INSERT INTO role (title, salary, department_id) VALUES (?,?,?)", [res.role], function(err, data) {
+            if (err) throw err; 
+            console.table(data);
+            console.log("Success");
+            startMenu();
+        })
+    })
+}
 
 //functional
 function viewMenu() {
@@ -166,7 +210,9 @@ function viewMenu() {
             choices: [
                 "View All Employees",
                 "View by Department",
-                "View by Manager"
+                "View by Manager",
+                "Back to Main Menu",
+                "Exit"
             ]
         }
     ]).then(function (res) {
@@ -179,6 +225,12 @@ function viewMenu() {
                 break;
             case "View by Manager": 
                 viewManagers();
+                break;
+            case "Back to Main Menu":
+                startMenu();
+                break;
+            case "Exit":
+                connection.end();
                 break;
         }
     });
@@ -201,17 +253,7 @@ function viewDepartments() {
 
 // TO DO:
 
-// function addRole() {
-    // connection.query("SELECT role.title FROM role", (err, res) => {
-    //     if (err) throw err;
-    //     const roles = res.map((data) => {
-    //         return {
-    //             name: data.title,
-    //             value: data.role_id
-    //         }
-    //     });
-    // })
-// }
+
 
 
 // function viewManagers() {
@@ -241,4 +283,113 @@ function viewDepartments() {
 
 // }
 
+function updateMenu() {
+    inquirer.prompt([
+        {
+            type: "list",
+            name: "UpdateMenu",
+            message: "Choose an option below: \n",
+            choices: [
+                // "Update Employee",
+                "Update Role",
+                "Update Manager",
+                "Back to Main Menu",
+                "Exit"
+            ]
+        }
+    ]).then(function (res) {
+        switch (res.UpdateMenu) {
+            case "Update Role": 
+                updateRole();
+                break;           
+            case "Update Manager": 
+                updateManager();
+                break;
+            case "Back to Main Menu":
+                startMenu();
+                break;
+            case "Exit":
+                connection.end();
+                break;
+        } 
+    })
+}
 
+function updateRole() {
+    connection.query("SELECT * FROM role", (err, res) => {
+        if (err) throw err;
+        const roles = res.map((data) => {
+            console.log(data);
+
+            return {
+                name: data.title,
+                value: data
+            }
+        });
+
+        inquirer.prompt([
+            {
+                type: "list",
+                name: "UpdateRoles",
+                message: "Which role would you like to update?\n",
+                choices: roles
+            }
+        ]).then(function (answer) {
+            inquirer.prompt
+        });
+    });
+}
+
+function removeMenu() {
+    inquirer.prompt([
+        {
+            type: "list",
+            name: "RemoveMenu",
+            message: "What would you like to remove?\n",
+            choices: [
+                "Remove Employee",
+                "Remove Role",
+                "Remove Department",
+                "Exit"
+            ]
+        }
+    ]).then(function (res) {
+        switch (res.RemoveMenu) {
+            case "Remove Employee":
+                rmEmployee();
+                break;
+            case "Remove Role":
+                rmRole();
+                break;
+            case "Remove Department":
+                rmDept();
+                break;
+            case "Exit":
+                connection.end();
+                break;
+        }
+    });
+}
+
+function rmEmployee() {
+    connection.query("SELECT * FROM employee", function (err, res) {
+        if(err) throw err;
+        console.table(res);
+        inquirer.prompt([
+            {
+                type: "input",
+                name: "RemoveEmployee",
+                message: "What is the ID of the employee you want to remove? (Reference table above)\n"
+            }
+        ]).then(function (answer) {
+            connection.query("DELETE FROM employee WHERE id = ?", [answer.RemoveEmployee], function () {
+                console.log("Employee has been removed");
+                startMenu();
+            }) 
+        })
+    })
+}
+
+function rmRole() {
+    connection.query("")
+}
