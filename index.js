@@ -1,7 +1,5 @@
 const connection = require("./db/connection");
 const inquirer = require("inquirer");
-const { connect } = require("./db/connection");
-
 
 connection.connect(function (err) {
     if (err) throw err;
@@ -132,31 +130,26 @@ function addEmployee() {
                     choices: managers
                 }
             ]).then(function (input) {
-                console.log(input);
-                let roleID = input.role_id;
-                let managerID = input.manager_id;
-                if (managerID === "NONE") {
-                    managerID = null;
-                    console.log(managerID);
+                if (input.manager_id === "NONE") {
+                    input.manager_id = null;
                 }
                 connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ( ?, ?, ?, ?)",
                     [
                         input.FirstName,
                         input.LastName,
-                        roleID,
-                        managerID
+                        input.role_id,
+                        input.manager_id
                     ],
-                (err, res) => {
+                (err) => {
                     if (err) throw err;
-                    console.log("Employee has been added!")
-                    console.table(res);
+                    console.log("Employee has been added!");
                     startMenu();
                 });
             });
         });
     });
 }
-//functional
+//functional TESTED
 function addDepartment() {
     inquirer.prompt([
         {
@@ -175,32 +168,51 @@ function addDepartment() {
 }
 
 function addRole() {
-    // connection.query("SELECT role.title FROM role", (err, res) => {
-    //     if (err) throw err;
-    //     const roles = res.map((data) => {
-    //         return {
-    //             name: data.title,
-    //             value: data.role_id
-    //         }
-    //     });
-    // })
-    inquirer.prompt([
-        {
-            type: "input",
-            name: "role",
-            message: "What is the role that you want to add?\n"
-        }
-    ]).then(function (res) {
-        connection.query("INSERT INTO role (title, salary, department_id) VALUES (?,?,?)", [res.role], function(err, data) {
-            if (err) throw err; 
-            console.table(data);
-            console.log("Success");
-            startMenu();
-        })
-    })
+    connection.query("SELECT * FROM department", (err, res) => {
+        if (err) throw err;
+        const dept = res.map((data) => {
+            return {
+                name: data.name,
+                value: data.department_id
+            }
+        });
+
+        inquirer.prompt([
+                {
+                    type: "input",
+                    name: "roleTitle",
+                    message: "What is the role that you want to add?\n"
+                },
+                {
+                    type: "input",
+                    name: "roleSalary",
+                    message: "What is their rounded salary?\n"
+                    //validate?
+                },
+                {
+                    type: "list",
+                    name: "selectDeptID",
+                    message: "What department do they belong to? \n",
+                    choices: dept
+                }
+        ]).then(function (res) {
+            connection.query("INSERT INTO role (title, salary, department_id) VALUES (?,?,?)", 
+                [
+                    res.roleTitle,
+                    res.roleSalary,
+                    res.selectDeptID
+                ], 
+            function(err) {
+                if (err) throw err; 
+                console.log("Success");
+                startMenu();
+            });
+        });
+
+    });
 }
 
-//functional
+//functional 
 function viewMenu() {
     inquirer.prompt([
         {   
@@ -235,7 +247,7 @@ function viewMenu() {
         }
     });
 }
-//functional
+//functional TESTED
 function viewAll() {
     connection.query("SELECT * FROM employee", function (err, res) {
         if (err) throw err;
@@ -244,6 +256,7 @@ function viewAll() {
     })
 }
 //functional
+// DEV NOTE: Function may be too literal, CURRENT: VIEW DEPARTMENT, UPDATE TO: VIEW EMPLOYEE BY DEPT. 
 function viewDepartments() {
     connection.query("SELECT * FROM department", function (err, data) {
         console.table(data);
@@ -252,10 +265,6 @@ function viewDepartments() {
 }
 
 // TO DO:
-
-
-
-
 // function viewManagers() {
 //     connection.query("SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS manager, employee.id FROM employee", function (err, res) {
 //         if (err) throw err;
@@ -279,10 +288,7 @@ function viewDepartments() {
 //     });
 // }
 
-// function updateEmployees() {
-
-// }
-
+//functional
 function updateMenu() {
     inquirer.prompt([
         {
@@ -291,7 +297,7 @@ function updateMenu() {
             message: "Choose an option below: \n",
             choices: [
                 // "Update Employee",
-                "Update Role",
+                "Update Employee Role",
                 "Update Manager",
                 "Back to Main Menu",
                 "Exit"
@@ -299,8 +305,8 @@ function updateMenu() {
         }
     ]).then(function (res) {
         switch (res.UpdateMenu) {
-            case "Update Role": 
-                updateRole();
+            case "Update Employee Role": 
+                updateEmployeeRole();
                 break;           
             case "Update Manager": 
                 updateManager();
@@ -315,31 +321,58 @@ function updateMenu() {
     })
 }
 
-function updateRole() {
-    connection.query("SELECT * FROM role", (err, res) => {
+//functional TESTED
+function updateEmployeeRole() {
+    connection.query("SELECT role.role_id, role.title FROM role", (err, res) => {
         if (err) throw err;
-        const roles = res.map((data) => {
-            console.log(data);
-
+        const roles = res.map((row) => {
             return {
-                name: data.title,
-                value: data
-            }
+                name: row.title,
+                value: row.role_id,
+            };
         });
+        connection.query("SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS currentEmployee, employee.id FROM employee",
+            (err, res) => {
+                if (err) throw err;
 
-        inquirer.prompt([
-            {
-                type: "list",
-                name: "UpdateRoles",
-                message: "Which role would you like to update?\n",
-                choices: roles
+                const employees = res.map((element) => {
+                    return {
+                        name: element.currentEmployee,
+                        value: element.id,
+                    };
+                });
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "employeeSelect",
+                        message: "Select the employee you would like to update?\n",
+                        choices: employees
+                    },
+                    {
+                        type: "list",
+                        name: "roleSelect",
+                        message: "What will be their new role?\n",
+                        choices: roles
+                    }
+                ]).then((answers) => {
+                    connection.query("UPDATE employee SET employee.role_id = ? WHERE employee.id = ?;",
+                        [
+                            answers.roleSelect,
+                            answers.employeeSelect,
+                        ],
+                        (err) => {
+                            if (err) throw err;
+                            console.log("UPDATED")
+                            startMenu();
+                        }
+                    );
+                });
             }
-        ]).then(function (answer) {
-            inquirer.prompt
-        });
+        );
     });
 }
 
+//functional TESTED
 function removeMenu() {
     inquirer.prompt([
         {
@@ -350,6 +383,7 @@ function removeMenu() {
                 "Remove Employee",
                 "Remove Role",
                 "Remove Department",
+                "Back to Main Menu",
                 "Exit"
             ]
         }
@@ -364,13 +398,16 @@ function removeMenu() {
             case "Remove Department":
                 rmDept();
                 break;
+            case "Back to Main Menu":
+                startMenu();
+                break;
             case "Exit":
                 connection.end();
                 break;
         }
     });
 }
-
+//functional 
 function rmEmployee() {
     connection.query("SELECT * FROM employee", function (err, res) {
         if(err) throw err;
@@ -389,7 +426,41 @@ function rmEmployee() {
         })
     })
 }
-
+//TO DO
 function rmRole() {
-    connection.query("")
+    connection.query("SELECT * FROM role", function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        inquirer.prompt([
+            {
+                type: "input",
+                name: "RemoveRole",
+                message: "What is the role_id of the title you want to remove?\n"
+            }
+        ]).then(function (answer) {
+            connection.query("DELETE FROM role WHERE role_id = ?", [answer.RemoveRole], function () {
+                console.log("Role has been removed");
+                startMenu();
+            })
+        })
+    })
+}
+
+function rmDept() {
+    connection.query("SELECT * FROM department", function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        inquirer.prompt([
+            {
+                type: "input",
+                name: "RemoveDept",
+                message: "What is the department_id of the branch you want to remove?\n"
+            }
+        ]).then(function (answer) {
+            connection.query("DELETE FROM department WHERE department_id = ?", [answer.RemoveDept], function () {
+                console.log("Department has been removed");
+                startMenu();
+            })
+        })
+    })
 }
