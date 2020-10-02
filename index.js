@@ -7,7 +7,7 @@ connection.connect(function (err) {
     startMenu();
 });
 
-//functional
+// Start Menu
 function startMenu() {
     inquirer.prompt([
         {
@@ -51,7 +51,8 @@ function startMenu() {
         }
     });
 }
-//functional
+
+// Add menu
 function addMenu() {
     inquirer.prompt([
         {   
@@ -87,7 +88,6 @@ function addMenu() {
     });
 }
 
-//functional
 function addEmployee() {
     connection.query("SELECT role.role_id, role.title FROM role", (err, res) => {
         if (err) throw err;
@@ -149,7 +149,7 @@ function addEmployee() {
         });
     });
 }
-//functional TESTED
+
 function addDepartment() {
     inquirer.prompt([
         {
@@ -196,7 +196,7 @@ function addRole() {
                     choices: dept
                 }
         ]).then(function (res) {
-            connection.query("INSERT INTO role (title, salary, department_id) VALUES (?,?,?)", 
+            connection.query("INSERT INTO role (title, salary, department_id) VALUES ( ?, ?, ?)", 
                 [
                     res.roleTitle,
                     res.roleSalary,
@@ -212,7 +212,7 @@ function addRole() {
     });
 }
 
-//functional 
+// View Menu
 function viewMenu() {
     inquirer.prompt([
         {   
@@ -236,7 +236,7 @@ function viewMenu() {
                 viewDepartments();
                 break;
             case "View by Manager": 
-                viewManagers();
+                viewByManager();
                 break;
             case "Back to Main Menu":
                 startMenu();
@@ -247,48 +247,49 @@ function viewMenu() {
         }
     });
 }
-//functional TESTED
+
 function viewAll() {
     connection.query("SELECT * FROM employee", function (err, res) {
         if (err) throw err;
         console.table(res);
         startMenu();
-    })
+    });
 }
-//functional
-// DEV NOTE: Function may be too literal, CURRENT: VIEW DEPARTMENT, UPDATE TO: VIEW EMPLOYEE BY DEPT. 
+// DEV NOTE: Function may be too literal, CURRENT: VIEW DEPARTMENT, UPDATE TO: VIEW EMPLOYEE BY DEPT.
 function viewDepartments() {
     connection.query("SELECT * FROM department", function (err, data) {
         console.table(data);
         startMenu();
-    })
+    });
 }
 
-// TO DO:
-// function viewManagers() {
-//     connection.query("SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS manager, employee.id FROM employee", function (err, res) {
-//         if (err) throw err;
-//         const managers = res.map((element) => {
-//             return {
-//                 name: element.manager,
-//                 value: element.id
-//             }
-//         });
-//         inquirer.prompt([
-//             {
-//                 type: "list", 
-//                 name: "viewManagerMenu",
-//                 message: "Select Manager to see their team\n",
-//                 choices: managers
-//             }
-//         ]).then((answers) => {
-//             if (err) throw err; 
-//             connection.query();
-//         });
-//     });
-// }
+function viewByManager() {
+    connection.query("SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS manager, employee.id FROM employee", (err, res) => {
+        if (err) throw err; 
+        const managers = res.map((element) => {
+            return {
+                name: element.manager,
+                value: element.id
+            }
+        });
+        inquirer.prompt([
+            {
+                type: "list",
+                name: "SelectManager",
+                message: "Which manager would you like to filter by?\n",
+                choices: managers
+            }
+        ]).then((answers) => {
+            connection.query("SELECT * FROM employee WHERE manager_id = ?", [answers.SelectManager], (err, res) => {
+                if (err) throw err;
+                console.table(res);
+                startMenu();
+            });
+        });
+    });
+}
 
-//functional
+// Update Menu
 function updateMenu() {
     inquirer.prompt([
         {
@@ -298,7 +299,7 @@ function updateMenu() {
             choices: [
                 // "Update Employee",
                 "Update Employee Role",
-                "Update Manager",
+                // "Update Manager", // TO DO 
                 "Back to Main Menu",
                 "Exit"
             ]
@@ -321,7 +322,6 @@ function updateMenu() {
     })
 }
 
-//functional TESTED
 function updateEmployeeRole() {
     connection.query("SELECT role.role_id, role.title FROM role", (err, res) => {
         if (err) throw err;
@@ -372,7 +372,11 @@ function updateEmployeeRole() {
     });
 }
 
-//functional TESTED
+// function updateManager() {
+
+// }
+
+// Delete Menu
 function removeMenu() {
     inquirer.prompt([
         {
@@ -407,7 +411,7 @@ function removeMenu() {
         }
     });
 }
-//functional 
+
 function rmEmployee() {
     connection.query("SELECT * FROM employee", function (err, res) {
         if(err) throw err;
@@ -422,11 +426,11 @@ function rmEmployee() {
             connection.query("DELETE FROM employee WHERE id = ?", [answer.RemoveEmployee], function () {
                 console.log("Employee has been removed");
                 startMenu();
-            }) 
-        })
-    })
+            });
+        });
+    });
 }
-//TO DO
+
 function rmRole() {
     connection.query("SELECT * FROM role", function (err, res) {
         if (err) throw err;
@@ -441,9 +445,9 @@ function rmRole() {
             connection.query("DELETE FROM role WHERE role_id = ?", [answer.RemoveRole], function () {
                 console.log("Role has been removed");
                 startMenu();
-            })
-        })
-    })
+            });
+        });
+    });
 }
 
 function rmDept() {
@@ -460,7 +464,7 @@ function rmDept() {
             connection.query("DELETE FROM department WHERE department_id = ?", [answer.RemoveDept], function () {
                 console.log("Department has been removed");
                 startMenu();
-            })
-        })
-    })
+            });
+        });
+    });
 }
