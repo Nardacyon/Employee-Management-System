@@ -23,9 +23,20 @@
 
   This app is a database management system that allows users to view, add, update, and remove employee data. This is done by accessing a connection to a mySQL server, inquiring with the user, and modifying data in the database.
   ## Installation: 
-  Use cmd npm install for dependencies:: you need to install mySQL and Inquirer using cmd npm install mysql inquirer
+  To install dependencies use:
+    
+      npm install 
+      npm install mysql
+      npm install inquirer
+      
   ## Usage:
-  To use the app, run your mySQL server, install the dependencies listed in the package.json and run the app with node 
+  To use the app
+    1. Run your mySQL server
+    2. Install the dependencies listed in the package.json
+    3. Run the app with 
+        
+      node index.js
+        
   ## Contributing: 
   No contributors
   ## Test: 
