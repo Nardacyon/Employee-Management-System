@@ -2,73 +2,46 @@ const connection = require("./db/connection");
 const inquirer = require("inquirer");
 
 connection.connect(function (err) {
-    if (err) throw err;
-    console.log("Connected");
+    if(err) throw err;
+    console.log(`CONNECTED`);
     startMenu();
 });
 
-// Start Menu
 function startMenu() {
     inquirer.prompt([
         {
             type: "list",
-            name: "Start",
-            message: "What would you like to do?\n",
+            name: "MainMenu",
+            message: "What would you like to do? \n",
             choices: [
-                "Add",
-                "View",
-                "Update",
-                "Remove",
-                "Exit",
-                // Dev tool to clear all saved data
-                "Dev"
-            ]
-        }
-    ]).then(function (res) {
-        switch (res.Start) {
-            case "Add":
-                addMenu();
-                break;            
-            case "View":
-                viewMenu();
-                break;            
-            case "Update":
-                updateMenu();
-                break;       
-            case "Remove": 
-                removeMenu();
-                break;    
-            case "Exit":
-                connection.end();
-                break;
-            // Development tool to clear all saved queries and revert to the default ones in the seed.sql
-            case "Dev":
-                connection.query("DELETE FROM employee WHERE id > 2");
-                connection.query("DELETE FROM department WHERE department_id > 4");
-                connection.query("DELETE FROM role WHERE role_id > 5");
-                startMenu();
-                break;
-        }
-    });
-}
-
-// Add menu
-function addMenu() {
-    inquirer.prompt([
-        {   
-            type: "list",
-            name: "AddMenu",
-            message: "What would you like to add?\n",
-            choices: [
+                "View All Employees",
+                "View by Department",
+                "View by Manager",
+                "View All Roles", 
                 "Add New Department",
                 "Add New Employee",
                 "Add New Role",
-                "Back to Main Menu",
+                "Update Employee Role",
+                "Remove Employee",
+                "Remove Role",
+                "Remove Department",
                 "Exit"
             ]
         }
-    ]).then(function (res) {
-        switch (res.AddMenu) {
+    ]).then(function (res){
+        switch (res.MainMenu) {
+            case "View All Employees":
+                viewAll();
+                break;
+            case "View by Department":
+                viewDepartments();
+                break;
+            case "View by Manager": 
+                viewByManager();
+                break;
+            case "View All Roles":
+                viewByRoles();
+                break;
             case "Add New Department":
                 addDepartment();
                 break;
@@ -78,13 +51,71 @@ function addMenu() {
             case "Add New Role": 
                 addRole();
                 break;
-            case "Back to Main Menu":
-                startMenu();
+            case "Update Employee Role": 
+                updateEmployeeRole();
+                break;
+            case "Remove Employee":
+                rmEmployee();
+                break;
+            case "Remove Role":
+                rmRole();
+                break;
+            case "Remove Department":
+                rmDept();
                 break;
             case "Exit":
                 connection.end();
                 break;
         }
+    });
+}
+
+function viewAll() {
+    connection.query("SELECT * FROM employee", function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        startMenu();
+    });
+}
+
+function viewDepartments() {
+    connection.query("SELECT * FROM department", function (err, data) {
+        console.table(data);
+        startMenu();
+    });
+}
+
+function viewByManager() {
+    connection.query("SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS manager, employee.id FROM employee", (err, res) => {
+        if (err) throw err; 
+        const managers = res.map((element) => {
+            return {
+                name: element.manager,
+                value: element.id
+            }
+        });
+        inquirer.prompt([
+            {
+                type: "list",
+                name: "SelectManager",
+                message: "Which manager would you like to filter by?\n",
+                choices: managers
+            }
+        ]).then((answers) => {
+            connection.query("SELECT * FROM employee WHERE manager_id = ?", [answers.SelectManager], (err, res) => {
+                if (err) throw err;
+                console.table(res);
+                startMenu();
+            });
+        });
+    });
+}
+
+function viewByRoles() {
+    connection.query("SELECT * FROM role", (err, data) => {
+        if (err) throw err;
+        console.table(data);
+        startMenu();
     });
 }
 
@@ -160,7 +191,6 @@ function addDepartment() {
     ]).then(function (res) {
         connection.query("INSERT INTO department (name) VALUES (?)", [res.department], function (err, data) {
             if (err) throw err;
-            console.table(data);
             console.log("Success");
             startMenu();
         });
@@ -212,116 +242,6 @@ function addRole() {
     });
 }
 
-// View Menu
-function viewMenu() {
-    inquirer.prompt([
-        {   
-            type: "list",
-            name: "ViewMenu",
-            message: "Select an option \n",
-            choices: [
-                "View All Employees",
-                "View by Department",
-                "View by Manager",
-                "Back to Main Menu",
-                "Exit"
-            ]
-        }
-    ]).then(function (res) {
-        switch (res.ViewMenu) {
-            case "View All Employees":
-                viewAll();
-                break;
-            case "View by Department":
-                viewDepartments();
-                break;
-            case "View by Manager": 
-                viewByManager();
-                break;
-            case "Back to Main Menu":
-                startMenu();
-                break;
-            case "Exit":
-                connection.end();
-                break;
-        }
-    });
-}
-
-function viewAll() {
-    connection.query("SELECT * FROM employee", function (err, res) {
-        if (err) throw err;
-        console.table(res);
-        startMenu();
-    });
-}
-// DEV NOTE: Function may be too literal, CURRENT: VIEW DEPARTMENT, UPDATE TO: VIEW EMPLOYEE BY DEPT.
-function viewDepartments() {
-    connection.query("SELECT * FROM department", function (err, data) {
-        console.table(data);
-        startMenu();
-    });
-}
-
-function viewByManager() {
-    connection.query("SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS manager, employee.id FROM employee", (err, res) => {
-        if (err) throw err; 
-        const managers = res.map((element) => {
-            return {
-                name: element.manager,
-                value: element.id
-            }
-        });
-        inquirer.prompt([
-            {
-                type: "list",
-                name: "SelectManager",
-                message: "Which manager would you like to filter by?\n",
-                choices: managers
-            }
-        ]).then((answers) => {
-            connection.query("SELECT * FROM employee WHERE manager_id = ?", [answers.SelectManager], (err, res) => {
-                if (err) throw err;
-                console.table(res);
-                startMenu();
-            });
-        });
-    });
-}
-
-// Update Menu
-function updateMenu() {
-    inquirer.prompt([
-        {
-            type: "list",
-            name: "UpdateMenu",
-            message: "Choose an option below: \n",
-            choices: [
-                // "Update Employee",
-                "Update Employee Role",
-                // "Update Manager", // TO DO 
-                "Back to Main Menu",
-                "Exit"
-            ]
-        }
-    ]).then(function (res) {
-        switch (res.UpdateMenu) {
-            case "Update Employee Role": 
-                updateEmployeeRole();
-                break;           
-            case "Update Manager": 
-                updateManager();
-                break;
-            case "Back to Main Menu":
-                startMenu();
-                break;
-            case "Exit":
-                connection.end();
-                break;
-        } 
-    })
-}
-
 function updateEmployeeRole() {
     connection.query("SELECT role.role_id, role.title FROM role", (err, res) => {
         if (err) throw err;
@@ -355,60 +275,22 @@ function updateEmployeeRole() {
                         choices: roles
                     }
                 ]).then((answers) => {
-                    connection.query("UPDATE employee SET employee.role_id = ? WHERE employee.id = ?;",
+                    console.log(answers.roleSelect);
+                    console.log(answers.employeeSelect);
+                    connection.query("UPDATE employee SET employee.role_id = ? WHERE employee.id = ?",
                         [
                             answers.roleSelect,
                             answers.employeeSelect,
                         ],
                         (err) => {
                             if (err) throw err;
-                            console.log("UPDATED")
+                            console.log("UPDATED");
                             startMenu();
                         }
                     );
                 });
             }
         );
-    });
-}
-
-// function updateManager() {
-
-// }
-
-// Delete Menu
-function removeMenu() {
-    inquirer.prompt([
-        {
-            type: "list",
-            name: "RemoveMenu",
-            message: "What would you like to remove?\n",
-            choices: [
-                "Remove Employee",
-                "Remove Role",
-                "Remove Department",
-                "Back to Main Menu",
-                "Exit"
-            ]
-        }
-    ]).then(function (res) {
-        switch (res.RemoveMenu) {
-            case "Remove Employee":
-                rmEmployee();
-                break;
-            case "Remove Role":
-                rmRole();
-                break;
-            case "Remove Department":
-                rmDept();
-                break;
-            case "Back to Main Menu":
-                startMenu();
-                break;
-            case "Exit":
-                connection.end();
-                break;
-        }
     });
 }
 
