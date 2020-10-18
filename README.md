@@ -21,7 +21,7 @@
   ## Description:
   ![]()
 
-  This app is a database management system that allows users to view, add, update, and remove employee data. This is done by accessing a connection to a mySQL server, inquiring with the user, and modifying data in the database.
+  This app is a database management system that allows users to view, add, update, and remove employee data. This is done by accessing a connection to a MySQL server, inquiring with the user, and modifying data in the database. One thing to note is that it is a CLI app. It's use is meant for command lines and terminals. Commands will be used to operate this. For a tutorial of how the app works click [here](https://www.youtube.com/watch?v=oQ5A-X3AnkA&t=5s&ab_channel=KingTing).
   ## Installation: 
   To install dependencies use:
     
@@ -30,11 +30,8 @@
       npm install inquirer
       
   ## Usage:
-  To use the app
-    1. Run your mySQL server
-    2. Install the dependencies listed in the package.json
-    3. Run the app with 
-        
+  To use the app make sure your MySQL server is running, install dependencies as stated above. Then run the app using the cmd:
+      
       node index.js
         
   ## Contributing: 
@@ -48,4 +45,4 @@
   ## Questions: 
   For questions about the project go to my GitHub page at:
 
-  * [GitHub Profile](https://github.com/Nardacyon)
+  [GitHub Profile](https://github.com/Nardacyon)
