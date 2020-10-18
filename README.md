@@ -19,8 +19,7 @@
 * [Questions](#questions) 
 
   ## Description:
-  ![]()
-
+  ![](./misc/employee-rdbms.PNG)
   This app is a database management system that allows users to view, add, update, and remove employee data. This is done by accessing a connection to a MySQL server, inquiring with the user, and modifying data in the database. One thing to note is that it is a CLI app. It's use is meant for command lines and terminals. Commands will be used to operate this. For a tutorial of how the app works click [here](https://www.youtube.com/watch?v=oQ5A-X3AnkA&t=5s&ab_channel=KingTing).
   ## Installation: 
   To install dependencies use:
